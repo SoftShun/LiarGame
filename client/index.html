@@ -45,6 +45,7 @@
             <select id="game-mode">
               <option value="basic">기본 모드</option>
               <option value="spy">스파이 모드</option>
+              <option value="fool">바보 모드</option>
             </select>
           </div>
           <div class="option-description">
@@ -81,6 +82,11 @@
         </div>
         <div class="game-status">
           <div id="game-status-message"></div>
+          <div id="game-progress-bar" class="progress-bar">
+            <div class="progress-step active" data-step="speech">발언</div>
+            <div class="progress-step" data-step="vote">투표</div>
+            <div class="progress-step" data-step="result">결과</div>
+          </div>
         </div>
         <div class="help-button">
           <button id="help-button">?</button>
@@ -154,7 +160,8 @@
         </div>
       </div>
       <div class="result-next">
-        <p>다음 게임이 <span id="next-game-timer">10</span>초 후에 시작됩니다</p>
+        <!-- 자동 시작 타이머를 방장용 재시작 버튼으로 대체 -->
+        <!-- 버튼은 JavaScript로 동적 생성됨 -->
       </div>
     </div>
   </div>
@@ -165,23 +172,66 @@
       <span class="close-modal">&times;</span>
       <h2>라이어 게임 도움말</h2>
       <div class="help-content">
-        <h3>기본 규칙</h3>
-        <p>1. 참가자 중 한 명은 라이어로 선정됩니다.</p>
-        <p>2. 라이어를 제외한 모든 사람은 제시어를 알고 있습니다.</p>
-        <p>3. 라이어는 제시어를 모르지만 카테고리는 알고 있습니다.</p>
-        <p>4. 순서대로 돌아가며 제시어에 대해 설명합니다.</p>
-        <p>5. 설명이 끝나면 누가 라이어인지 투표합니다.</p>
-        <p>6. 라이어가 지목되면 라이어는 제시어를 추측할 기회가 있습니다.</p>
-        <p>7. 라이어가 제시어를 맞추면 라이어의 승리, 틀리면 일반 참가자의 승리입니다.</p>
+        <div class="game-rules-section">
+          <h4>게임 목적</h4>
+          <p>다른 사람들과 돌아가며 제시어에 대해 설명하면서, 누가 라이어(또는 바보)인지 찾아내는 게임입니다.</p>
+        </div>
+
+        <div class="game-rules-section">
+          <h4>기본 규칙</h4>
+          <div class="rule-item">
+            <span class="rule-number">1</span>
+            <p>모든 참가자는 카테고리를 알 수 있지만, 라이어만 제시어를 모릅니다.</p>
+          </div>
+          <div class="rule-item">
+            <span class="rule-number">2</span>
+            <p>참가자들은 순서대로 30초 안에 제시어에 대해 한 문장으로 설명합니다.</p>
+          </div>
+          <div class="rule-item">
+            <span class="rule-number">3</span>
+            <p>모든 참가자가 한 번씩 설명을 마치면 투표로 라이어를 지목합니다.</p>
+          </div>
+          <div class="rule-item">
+            <span class="rule-number">4</span>
+            <p>라이어로 지목된 사람은 제시어를 추측할 기회를 얻습니다.</p>
+          </div>
+          <div class="rule-item">
+            <span class="rule-number">5</span>
+            <p>라이어가 제시어를 맞추면 라이어 승리, 틀리면 일반 참가자들 승리입니다.</p>
+          </div>
+        </div>
         
-        <h3>스파이 모드</h3>
-        <p>1. 스파이 모드에서는 라이어 외에 스파이가 한 명 더 선정됩니다.</p>
-        <p>2. 스파이는 제시어를 알고 있으며, 라이어가 제시어를 알아챌 수 있도록 도와줍니다.</p>
-        <p>3. 스파이가 발각되면 라이어와 스파이 모두 패배합니다.</p>
+        <div class="game-rules-section">
+          <h4>게임 모드</h4>
+          <div class="rule-item">
+            <span class="mode-icon basic"></span>
+            <p><strong>기본 모드:</strong> 라이어가 제시어를 모르는 상태에서 게임에 참여합니다.</p>
+          </div>
+          <div class="rule-item">
+            <span class="mode-icon spy"></span>
+            <p><strong>스파이 모드:</strong> 스파이가 추가되어 라이어를 돕습니다. 스파이는 제시어를 알고 있습니다.</p>
+          </div>
+          <div class="rule-item">
+            <span class="mode-icon fool"></span>
+            <p><strong>바보 모드:</strong> 바보(라이어)는 자신이 바보인지 모르고, 다른 제시어를 받습니다. 다른 참가자는 모두 같은 제시어를 공유합니다.</p>
+          </div>
+        </div>
         
-        <h3>점수 규칙</h3>
-        <p>- 라이어 승리: 라이어 +3점, 스파이 +1점</p>
-        <p>- 일반 참가자 승리: 라이어와 스파이를 제외한 참가자 +1점</p>
+        <div class="game-rules-section">
+          <h4>점수 규칙</h4>
+          <div class="rule-item">
+            <span class="role-badge liar">라이어/바보</span>
+            <p>승리 시: <strong>+3점</strong></p>
+          </div>
+          <div class="rule-item">
+            <span class="role-badge spy">스파이</span>
+            <p>라이어 승리 시: <strong>+1점</strong></p>
+          </div>
+          <div class="rule-item">
+            <span class="role-badge player">참가자</span>
+            <p>시민팀 승리 시: <strong>+1점</strong></p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

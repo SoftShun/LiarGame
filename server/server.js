@@ -27,13 +27,27 @@ io.on('connection', (socket) => {
   
   // 닉네임 설정 및 로비 입장
   socket.on('join_lobby', (nickname) => {
-    gameManager.addPlayer(socket.id, nickname);
+    const player = gameManager.addPlayer(socket.id, nickname);
+    
+    // 방장 여부 정보 전송
+    socket.emit('player_info', {
+      id: socket.id,
+      nickname: player.nickname,
+      isHost: player.isHost
+    });
+    
+    // 전체 로비 업데이트
     io.emit('lobby_update', gameManager.getLobbyPlayers());
   });
   
   // 게임 시작
   socket.on('start_game', (gameMode) => {
-    gameManager.startGame(gameMode);
+    const result = gameManager.startGame(gameMode, socket.id);
+    
+    // 게임 시작 실패 시 오류 메시지 전송
+    if (!result.success) {
+      socket.emit('game_error', result.message);
+    }
   });
   
   // 게임 중 채팅 메시지
@@ -63,8 +77,13 @@ io.on('connection', (socket) => {
   });
   
   // 게임 재시작
-  socket.on('restart_game', () => {
-    gameManager.restartGame();
+  socket.on('restart_game', (gameMode) => {
+    const result = gameManager.restartGame(socket.id, gameMode);
+    
+    // 게임 재시작 실패 시 오류 메시지 전송
+    if (!result.success) {
+      socket.emit('game_error', result.message);
+    }
   });
   
   // 연결 해제

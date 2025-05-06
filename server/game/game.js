@@ -8,6 +8,7 @@ class GameManager {
     this.inLobby = true; // 현재 로비 상태인지
     this.gameStarted = false; // 게임이 시작되었는지
     this.spyMode = false; // 스파이 모드 활성화 여부
+    this.foolMode = false; // 바보 모드 활성화 여부
     this.category = null; // 현재 카테고리
     this.word = null; // 현재 단어
     this.liar = null; // 라이어 플레이어 ID
@@ -18,6 +19,8 @@ class GameManager {
     this.votingStarted = false; // 투표 시작 여부
     this.votes = new Map(); // 투표 결과 (투표자 ID => 대상 ID)
     this.gameResult = null; // 게임 결과
+    this.hostId = null; // 방장 ID
+    this.autoStart = false; // 자동 시작 여부 (비활성화)
   }
 
   // 플레이어 추가
@@ -27,6 +30,13 @@ class GameManager {
     }
     
     const player = new Player(id, nickname);
+    
+    // 첫 번째 접속자를 방장으로 지정
+    if (this.players.size === 0) {
+      player.isHost = true;
+      this.hostId = id;
+    }
+    
     this.players.set(id, player);
     
     // 게임이 이미 시작되었으면 관전자로 설정
@@ -39,7 +49,14 @@ class GameManager {
   
   // 플레이어 제거
   removePlayer(id) {
+    const isHost = this.players.get(id)?.isHost || false;
+    
     this.players.delete(id);
+    
+    // 방장이 나갔을 경우 다음 플레이어에게 방장 권한 이전
+    if (isHost && this.players.size > 0) {
+      this.assignNewHost();
+    }
     
     // 게임 중이고 플레이어가 게임에 참여 중이었다면 게임 상태 업데이트
     if (this.gameStarted && this.turnOrder.includes(id)) {
@@ -61,13 +78,31 @@ class GameManager {
           this.currentTurn = 0;
         }
         
-        // 플레이어가 2명 이하면 게임 종료
-        if (this.turnOrder.length <= 2) {
+        // 플레이어가 3명 미만이면 게임 종료 (최소 인원은 3명)
+        if (this.turnOrder.length < 3) {
           this.endGame('players', '플레이어가 부족하여 게임을 종료합니다.');
         } else {
           this.updateGameState();
         }
       }
+    }
+  }
+  
+  // 새로운 방장 지정
+  assignNewHost() {
+    if (this.players.size > 0) {
+      // 첫 번째 플레이어를 방장으로 지정
+      const nextHost = this.players.values().next().value;
+      nextHost.isHost = true;
+      this.hostId = nextHost.id;
+      
+      // 방장 변경 알림
+      this.io.emit('host_changed', {
+        hostId: this.hostId,
+        nickname: nextHost.nickname
+      });
+    } else {
+      this.hostId = null;
     }
   }
   
@@ -78,7 +113,8 @@ class GameManager {
       players.push({
         id: player.id,
         nickname: player.nickname,
-        isSpectator: player.isSpectator
+        isSpectator: player.isSpectator,
+        isHost: player.isHost
       });
     });
     return players;
@@ -89,19 +125,32 @@ class GameManager {
     return this.players.get(id);
   }
   
+  // 현재 방장인지 확인
+  isPlayerHost(id) {
+    return id === this.hostId;
+  }
+  
   // 게임 시작
-  startGame(gameMode) {
-    if (this.players.size < 3) {
+  startGame(gameMode, playerId) {
+    // 방장만 게임을 시작할 수 있음
+    if (playerId !== this.hostId) {
+      return {success: false, message: '방장만 게임을 시작할 수 있습니다.'};
+    }
+    
+    // 참가자 수 확인
+    const activePlayers = [...this.players.values()].filter(player => !player.isSpectator);
+    if (activePlayers.length < 3) {
       return {success: false, message: '최소 3명의 플레이어가 필요합니다.'};
     }
     
-    if (this.players.size > 8) {
+    if (activePlayers.length > 8) {
       return {success: false, message: '최대 8명의 플레이어만 참여할 수 있습니다.'};
     }
     
     this.inLobby = false;
     this.gameStarted = true;
     this.spyMode = gameMode === 'spy';
+    this.foolMode = gameMode === 'fool';
     this.turnOrder = [];
     this.currentTurn = 0;
     this.messages = [];
@@ -154,18 +203,24 @@ class GameManager {
     this.category = categories[categoryIndex].name;
     
     // 난이도별 단어 선택
-    const difficultyRandom = Math.random();
     let wordPool;
     
-    if (difficultyRandom < 0.25) {
-      // 쉬운 단어 (25%)
+    if (this.foolMode) {
+      // 바보 모드일 경우 항상 쉬운 단어에서 선택
       wordPool = categories[categoryIndex].words.easy;
-    } else if (difficultyRandom < 0.75) {
-      // 보통 단어 (50%)
-      wordPool = categories[categoryIndex].words.medium;
     } else {
-      // 어려운 단어 (25%)
-      wordPool = categories[categoryIndex].words.hard;
+      const difficultyRandom = Math.random();
+      
+      if (difficultyRandom < 0.25) {
+        // 쉬운 단어 (25%)
+        wordPool = categories[categoryIndex].words.easy;
+      } else if (difficultyRandom < 0.75) {
+        // 보통 단어 (50%)
+        wordPool = categories[categoryIndex].words.medium;
+      } else {
+        // 어려운 단어 (25%)
+        wordPool = categories[categoryIndex].words.hard;
+      }
     }
     
     // 랜덤 단어 선택
@@ -179,29 +234,71 @@ class GameManager {
       let roleInfo;
       
       if (player.isLiar) {
-        roleInfo = {
-          role: 'liar',
-          category: this.category,
-          word: null
-        };
+        if (this.foolMode) {
+          // 바보 모드에서는 라이어(바보)에게 다른 제시어를 보여주고, 자신이 바보인 것을 알려주지 않음
+          let differentWord;
+          do {
+            // 같은 카테고리에서 다른 단어 선택
+            const difficultyOptions = ['easy', 'medium', 'hard'];
+            const difficulty = difficultyOptions[Math.floor(Math.random() * difficultyOptions.length)];
+            
+            // 현재 카테고리에서 다른 단어 찾기
+            const categoryObj = categories.find(c => c.name === this.category);
+            if (categoryObj && categoryObj.words[difficulty].length > 1) {
+              const availableWords = categoryObj.words[difficulty].filter(w => w !== this.word);
+              if (availableWords.length > 0) {
+                differentWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+              }
+            }
+            
+            // 만약 같은 카테고리에서 적절한 다른 단어를 찾지 못했다면 다른 카테고리에서 단어 선택
+            if (!differentWord) {
+              const otherCategories = categories.filter(c => c.name !== this.category);
+              const randomCategory = otherCategories[Math.floor(Math.random() * otherCategories.length)];
+              const difficulty = difficultyOptions[Math.floor(Math.random() * difficultyOptions.length)];
+              differentWord = randomCategory.words[difficulty][
+                Math.floor(Math.random() * randomCategory.words[difficulty].length)
+              ];
+            }
+          } while (!differentWord || differentWord === this.word);
+          
+          roleInfo = {
+            role: 'player', // 바보 모드에서는 라이어에게 일반 플레이어 역할로 표시
+            category: this.category,
+            word: differentWord, // 다른 제시어 제공
+            foolMode: this.foolMode,
+            isFakeWord: true, // 이 단어가 가짜임을 서버만 알고 있음 (플레이어에게는 표시 안 함)
+            isFool: true // 서버 내부 처리용 바보 플래그
+          };
+        } else {
+          roleInfo = {
+            role: 'liar',
+            category: this.category,
+            word: null,
+            foolMode: this.foolMode
+          };
+        }
       } else if (player.isSpy) {
         roleInfo = {
           role: 'spy',
           category: this.category,
-          word: this.word
+          word: this.word,
+          foolMode: this.foolMode
         };
       } else {
         roleInfo = {
           role: 'player',
           category: this.category,
-          word: this.word
+          word: this.word,
+          foolMode: this.foolMode
         };
       }
       
       this.io.to(player.id).emit('game_start', {
         roleInfo,
         turnOrder: this.getTurnOrderInfo(),
-        spyMode: this.spyMode
+        spyMode: this.spyMode,
+        foolMode: this.foolMode
       });
     });
     
@@ -269,6 +366,14 @@ class GameManager {
     
     this.currentTurn = (this.currentTurn + 1) % this.turnOrder.length;
     this.updateGameState();
+    
+    // 턴 타이머 초기화 이벤트 발송
+    if (this.turnOrder.length > 0) {
+      this.io.emit('turn_changed', {
+        currentTurn: this.currentTurn,
+        playerId: this.turnOrder[this.currentTurn]
+      });
+    }
   }
   
   // 투표 시작
@@ -377,12 +482,15 @@ class GameManager {
     }
   }
   
-  // 라이어 단어 추측 확인
+  // 라이어 단어 추측 확인 (띄어쓰기와 대소문자 무시)
   checkLiarGuess(liardId, guessWord) {
     if (!this.gameStarted || liardId !== this.liar) return;
     
-    // 라이어가 단어를 맞췄는지 확인
-    if (guessWord.toLowerCase() === this.word.toLowerCase()) {
+    // 라이어가 단어를 맞췄는지 확인 (띄어쓰기, 대소문자 무시)
+    const normalizedGuess = guessWord.toLowerCase().replace(/\s+/g, '');
+    const normalizedWord = this.word.toLowerCase().replace(/\s+/g, '');
+    
+    if (normalizedGuess === normalizedWord) {
       this.endGame('liar', '라이어가 단어를 맞췄습니다!');
     } else {
       this.endGame('players', '라이어가 단어를 맞추지 못했습니다.');
@@ -438,39 +546,49 @@ class GameManager {
     this.gameStarted = false;
   }
   
-  // 다음 게임 준비
+  // 게임 결과 후 로비로 돌아가기
   prepareNextGame() {
+    // 게임 상태 초기화
     this.inLobby = true;
     this.gameStarted = false;
-    this.liar = null;
-    this.spy = null;
+    this.spyMode = false;
+    this.foolMode = false;
     this.category = null;
     this.word = null;
+    this.liar = null;
+    this.spy = null;
     this.turnOrder = [];
     this.currentTurn = 0;
     this.messages = [];
     this.votingStarted = false;
-    this.votes.clear();
+    this.votes = new Map();
     this.gameResult = null;
     
-    // 모든 플레이어의 관전자 상태 해제
+    // 플레이어 상태 초기화
     this.players.forEach(player => {
       player.isLiar = false;
       player.isSpy = false;
       player.isSpectator = false;
     });
     
-    // 로비 상태로 돌아가기
+    // 자동 재시작 비활성화 (방장이 수동으로 시작)
+    this.autoStart = false;
+    
+    // 로비로 돌아가기 이벤트 발송
     this.io.emit('return_to_lobby', {
-      players: this.getLobbyPlayers()
+      players: this.getLobbyPlayers(),
+      autoStart: this.autoStart
     });
   }
   
-  // 게임 재시작
-  restartGame() {
-    if (this.gameStarted) return;
+  // 게임 재시작 (방장이 요청)
+  restartGame(playerId, gameMode) {
+    // 방장만 게임을 재시작할 수 있음
+    if (playerId !== this.hostId) {
+      return {success: false, message: '방장만 게임을 재시작할 수 있습니다.'};
+    }
     
-    this.prepareNextGame();
+    return this.startGame(gameMode, playerId);
   }
   
   // 플레이어 점수 정보 반환

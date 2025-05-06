@@ -6,6 +6,7 @@ class Player {
     this.isSpy = false;     // 스파이 여부
     this.score = 0;         // 점수
     this.isSpectator = false; // 관전자 여부
+    this.isHost = false;    // 방장 여부
   }
 }
 

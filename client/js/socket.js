@@ -3,6 +3,7 @@ class SocketManager {
   constructor() {
     this.socket = null;
     this.events = {};
+    this.isHost = false; // 방장 여부
   }
 
   // 서버에 연결
@@ -44,6 +45,30 @@ class SocketManager {
     this.socket.on('error', (error) => {
       console.error('소켓 오류:', error);
     });
+    
+    // 게임 오류 처리
+    this.socket.on('game_error', (message) => {
+      console.error('게임 오류:', message);
+      alert(message);
+    });
+    
+    // 플레이어 정보 처리 (방장 여부 등)
+    this.socket.on('player_info', (data) => {
+      this.isHost = data.isHost;
+      console.log(`플레이어 정보: ID=${data.id}, 닉네임=${data.nickname}, 방장=${data.isHost}`);
+      
+      // 커스텀 이벤트 발생
+      this.triggerEvent('player_info_updated', data);
+    });
+    
+    // 방장 변경 처리
+    this.socket.on('host_changed', (data) => {
+      this.isHost = (data.hostId === this.socket.id);
+      console.log(`방장 변경: ${data.nickname} (본인: ${this.isHost})`);
+      
+      // 커스텀 이벤트 발생
+      this.triggerEvent('host_changed', data);
+    });
   }
 
   // 이벤트 리스너 등록
@@ -70,6 +95,15 @@ class SocketManager {
     }
     
     this.socket.emit(event, data);
+  }
+
+  // 커스텀 이벤트 발생시키기
+  triggerEvent(event, data) {
+    if (this.events[event]) {
+      this.events[event].forEach(callback => {
+        callback(data);
+      });
+    }
   }
 
   // 특정 이벤트 리스너 제거
