@@ -300,45 +300,179 @@ ul {
 }
 
 .game-info-container {
-  width: var(--container-width);
-  max-width: 500px;
+  width: 80%;
+  max-width: 700px;
   background-color: var(--white);
-  padding: var(--spacing-xl);
+  color: var(--text-color);
   border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-xl);
   text-align: center;
-  box-shadow: var(--shadow-lg);
-  animation: scaleIn 0.3s ease-in-out;
+  animation: scaleIn 0.3s ease-out;
+  position: relative;
 }
 
-@keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--gray);
 }
 
-#info-role-container {
-  margin: var(--spacing-lg) 0;
-  padding: var(--spacing-lg);
+.info-player {
+  text-align: left;
+}
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.info-category-container {
+  margin-bottom: var(--spacing-lg);
+  width: 100%;
+}
+
+.category-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-dark);
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md);
   background-color: var(--gray-light);
   border-radius: var(--border-radius);
 }
 
-.timer-container {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--spacing-lg);
+.info-role-container {
+  width: 100%;
+  padding: var(--spacing-lg);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius);
+  border-left: 5px solid var(--primary-color);
 }
 
-.timer {
+.info-word {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-top: var(--spacing-md);
+}
+
+/* 투표 모달과 라이어 추측 관련 스타일 */
+.game-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  align-items: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.game-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.game-modal-content {
+  background-color: var(--white);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-xl);
+  width: 90%;
+  max-width: 500px;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.game-modal.show .game-modal-content {
+  transform: scale(1);
+}
+
+.modal-timer-container {
+  margin: var(--spacing-md) 0;
+}
+
+.voting-list {
+  margin: var(--spacing-lg) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.voting-list li {
+  padding: var(--spacing-md);
+  background-color: var(--gray-light);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.voting-list li:hover {
+  background-color: var(--gray);
+}
+
+.voting-list li.selected {
   background-color: var(--primary-color);
   color: var(--white);
-  border-radius: 50%;
-  font-size: 24px;
-  font-weight: bold;
+}
+
+/* 플레이어 목록 업데이트 */
+.player-nickname {
+  margin-right: var(--spacing-md);
+}
+
+.player-score {
+  margin-left: auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius);
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.player-role-icon {
+  margin-left: var(--spacing-sm);
+  font-size: 1.2rem;
+}
+
+/* 라이어 추측 모드 */
+.liar-guess-mode {
+  border-color: var(--accent-color) !important;
+  background-color: rgba(231, 76, 60, 0.1) !important;
+}
+
+/* 최근 메시지 강조 */
+.last-message {
+  border-left: 4px solid var(--primary-color);
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .game-info-container {
+    width: 95%;
+    padding: var(--spacing-md);
+  }
+  
+  .info-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  .category-value {
+    font-size: 1.5rem;
+  }
 }
 
 /* 게임 화면 */
@@ -955,4 +1089,162 @@ ul {
   0% { transform: scale(1); }
   50% { transform: scale(1.1); }
   100% { transform: scale(1); }
+}
+
+/* 투표 결과 모달 스타일 */
+.vote-results-content {
+  max-width: 600px;
+  padding: var(--spacing-lg);
+}
+
+.vote-results-list {
+  margin: var(--spacing-lg) 0;
+}
+
+.vote-result-item {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--gray);
+}
+
+.vote-player-name {
+  width: 100px;
+  font-weight: bold;
+  margin-right: var(--spacing-md);
+}
+
+.vote-player-name.current-player {
+  color: var(--primary-color);
+}
+
+.vote-graph-container {
+  flex: 1;
+  height: 15px;
+  background-color: var(--gray-light);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 0 var(--spacing-md);
+}
+
+.vote-graph {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 10px;
+  width: 0;
+  transition: width 1s ease-in-out;
+}
+
+.vote-count {
+  min-width: 40px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.most-voted .vote-player-name {
+  color: var(--accent-color);
+}
+
+.most-voted .vote-graph {
+  background-color: var(--accent-color);
+}
+
+.vote-results-info {
+  text-align: center;
+  font-style: italic;
+  margin-top: var(--spacing-lg);
+  color: var(--text-light);
+}
+
+/* 게임 결과 상세 정보 테이블 스타일 */
+.player-results-section {
+  width: 100%;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--gray);
+}
+
+.player-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-md);
+  font-size: 14px;
+}
+
+.player-results-table th {
+  background-color: var(--primary-color);
+  color: var(--white);
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.player-results-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--gray);
+}
+
+.player-results-table tr:hover {
+  background-color: var(--gray-light);
+}
+
+.player-name-cell .current-player {
+  color: var(--primary-color);
+  font-weight: bold;
+}
+
+.correct-vote {
+  color: var(--secondary-color);
+  font-weight: bold;
+}
+
+.no-vote {
+  color: var(--text-light);
+  font-style: italic;
+}
+
+.winner {
+  color: var(--secondary-color);
+  font-weight: bold;
+}
+
+.loser {
+  color: var(--accent-color);
+}
+
+.liar-guess-info {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--gray-light);
+  border-radius: var(--border-radius);
+}
+
+.liar-guess-info h4 {
+  margin-bottom: var(--spacing-sm);
+  color: var(--primary-dark);
+}
+
+.liar-correct-guess {
+  color: var(--secondary-color);
+  font-weight: bold;
+}
+
+.liar-wrong-guess {
+  color: var(--accent-color);
+}
+
+/* 게임 결과 화면 반응형 조정 */
+@media (max-width: 768px) {
+  .player-results-table {
+    font-size: 12px;
+  }
+  
+  .vote-player-name {
+    width: 70px;
+  }
+  
+  .vote-results-content {
+    width: 95%;
+    max-width: none;
+  }
 }

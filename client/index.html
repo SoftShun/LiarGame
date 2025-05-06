@@ -22,7 +22,7 @@
     <div class="login-container">
       <h1>라이어 게임</h1>
       <div class="login-form">
-        <input type="text" id="nickname-input" placeholder="닉네임 (1-6자)" maxlength="6">
+        <input type="text" id="nickname-input" placeholder="닉네임 (1-8자)" maxlength="8">
         <button id="login-button">게임 참가</button>
       </div>
       <div class="error-message" id="login-error"></div>
@@ -47,6 +47,7 @@
               <option value="spy">스파이 모드</option>
               <option value="fool">바보 모드</option>
             </select>
+            <p class="host-only-message">방장만 게임 모드를 변경할 수 있습니다</p>
           </div>
           <div class="option-description">
             <p id="mode-description">기본 모드: 라이어 한 명을 찾아내는 게임입니다.</p>
@@ -60,13 +61,40 @@
   <!-- 게임 시작 정보 화면 -->
   <div id="game-info-screen" class="screen">
     <div class="game-info-container">
-      <h2>카테고리: <span id="info-category"></span></h2>
-      <div id="info-role-container">
-        <h3 id="info-role"></h3>
-        <p id="info-word"></p>
+      <div class="info-header">
+        <div class="info-player">
+          <h3>플레이어: <span id="info-nickname"></span></h3>
+        </div>
+        <div class="timer-container">
+          <div id="info-timer" class="timer">10</div>
+          <p class="timer-description">초 후 자동으로 시작됩니다</p>
+        </div>
       </div>
-      <div class="timer-container">
-        <div id="info-timer" class="timer">4</div>
+      
+      <div class="info-content">
+        <div class="info-category-container">
+          <h4>카테고리</h4>
+          <div class="category-value" id="info-category"></div>
+        </div>
+        
+        <div class="info-mode-container">
+          <h4>게임 모드</h4>
+          <div id="info-mode" class="mode-value"></div>
+        </div>
+        
+        <div id="info-role-container" class="info-role-container">
+          <h3 id="info-role"></h3>
+          <div id="info-word" class="info-word"></div>
+        </div>
+        
+        <div id="info-tip-container" class="info-tip-container">
+          <h4>게임 팁</h4>
+          <p id="info-tip" class="info-tip"></p>
+        </div>
+        
+        <div class="info-actions">
+          <button id="info-confirm-button" class="info-confirm-button">확인하고 게임 시작</button>
+        </div>
       </div>
     </div>
   </div>
@@ -89,7 +117,7 @@
           </div>
         </div>
         <div class="help-button">
-          <button id="help-button">?</button>
+          <button id="help-button" aria-label="도움말">?</button>
         </div>
       </div>
 
