@@ -1716,9 +1716,14 @@ class GameManager {
     if (this.elements.startGameButton) {
       if (this.isHost) {
         this.elements.startGameButton.style.display = 'block';
+        this.elements.startGameButton.disabled = false;
         this.elements.startGameButton.textContent = '게임 시작';
+        this.elements.startGameButton.classList.remove('non-host');
       } else {
-        this.elements.startGameButton.style.display = 'none';
+        this.elements.startGameButton.style.display = 'block';
+        this.elements.startGameButton.disabled = true;
+        this.elements.startGameButton.textContent = '방장만 게임을 시작할 수 있습니다';
+        this.elements.startGameButton.classList.add('non-host');
       }
     }
   }

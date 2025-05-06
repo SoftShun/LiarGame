@@ -1,22 +1,22 @@
 /* 기본 스타일 - 변수 추가 */
 :root {
   /* 컬러 팔레트 */
-  --primary-color: #3498db;
-  --primary-dark: #2980b9;
-  --secondary-color: #2ecc71;
-  --secondary-dark: #27ae60;
+  --primary-color: #2980b9;
+  --primary-dark: #1c6394;
+  --secondary-color: #27ae60;
+  --secondary-dark: #1e8449;
   --accent-color: #e74c3c;
   --accent-dark: #c0392b;
-  --text-color: #333;
-  --text-light: #666;
-  --text-dark: #222;
-  --bg-color: #f5f5f5;
+  --text-color: #2c3e50;
+  --text-light: #7f8c8d;
+  --text-dark: #1a1a1a;
+  --bg-color: #f5f7fa;
   --bg-dark: #2c3e50;
   --bg-light: #ecf0f1;
   --white: #ffffff;
   --gray-light: #f8f9fa;
   --gray: #e9ecef;
-  --gray-dark: #dee2e6;
+  --gray-dark: #ced4da;
   --border-color: #ddd;
   
   /* 추가 역할 색상 */
@@ -267,7 +267,22 @@ ul {
 }
 
 .option-item {
+  position: relative;
   margin-bottom: var(--spacing-md);
+}
+
+.game-options select:disabled {
+  background-color: var(--gray-light);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.host-only-message {
+  color: var(--text-light);
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 5px;
+  display: none;
 }
 
 .option-description {
@@ -325,6 +340,18 @@ ul {
   text-align: left;
 }
 
+.timer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timer-description {
+  margin-top: 5px;
+  font-size: 14px;
+  color: var(--text-light);
+}
+
 .info-content {
   display: flex;
   flex-direction: column;
@@ -332,33 +359,75 @@ ul {
   gap: var(--spacing-lg);
 }
 
-.info-category-container {
-  margin-bottom: var(--spacing-lg);
+.info-category-container,
+.info-mode-container,
+.info-role-container,
+.info-tip-container {
   width: 100%;
+  margin-bottom: var(--spacing-md);
 }
 
-.category-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: var(--primary-dark);
+.mode-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
   margin: var(--spacing-md) 0;
   padding: var(--spacing-md);
   background-color: var(--gray-light);
   border-radius: var(--border-radius);
+  gap: 10px;
 }
 
-.info-role-container {
-  width: 100%;
-  padding: var(--spacing-lg);
-  background-color: var(--bg-light);
+.info-tip-container {
+  background-color: rgba(52, 152, 219, 0.1);
   border-radius: var(--border-radius);
-  border-left: 5px solid var(--primary-color);
+  padding: var(--spacing-md);
+  border-left: 3px solid var(--primary-color);
 }
 
-.info-word {
-  font-size: 1.2rem;
-  line-height: 1.6;
-  margin-top: var(--spacing-md);
+.info-tip {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-color);
+  text-align: left;
+}
+
+.info-actions {
+  margin-top: var(--spacing-lg);
+  width: 100%;
+}
+
+.info-confirm-button {
+  font-size: 16px;
+  padding: 12px 24px;
+  background-color: var(--secondary-color);
+  color: var(--white);
+  border-radius: var(--border-radius);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+  width: 100%;
+  max-width: 300px;
+}
+
+.info-confirm-button:hover {
+  background-color: var(--secondary-dark);
+  transform: translateY(-2px);
+}
+
+.info-confirm-button:active {
+  transform: translateY(0);
+}
+
+.info-confirm-button:disabled {
+  background-color: var(--gray);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.info-confirm-button.confirmed {
+  background-color: var(--primary-color);
 }
 
 /* 투표 모달과 라이어 추측 관련 스타일 */
