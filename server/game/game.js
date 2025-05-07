@@ -132,20 +132,27 @@ class GameManager {
   
   // 게임 시작
   startGame(gameMode, playerId) {
+    console.log(`게임 시작 요청: 모드=${gameMode}, 요청자=${playerId}`);
+    
     // 방장만 게임을 시작할 수 있음
     if (playerId !== this.hostId) {
+      console.warn(`방장이 아닌 플레이어(${playerId})가 게임 시작을 시도했습니다.`);
       return {success: false, message: '방장만 게임을 시작할 수 있습니다.'};
     }
     
     // 참가자 수 확인
     const activePlayers = [...this.players.values()].filter(player => !player.isSpectator);
     if (activePlayers.length < 3) {
+      console.warn(`플레이어 수 부족(${activePlayers.length}명). 최소 3명 필요.`);
       return {success: false, message: '최소 3명의 플레이어가 필요합니다.'};
     }
     
     if (activePlayers.length > 8) {
+      console.warn(`플레이어 수 초과(${activePlayers.length}명). 최대 8명 가능.`);
       return {success: false, message: '최대 8명의 플레이어만 참여할 수 있습니다.'};
     }
+    
+    console.log(`게임 시작 조건 충족: ${activePlayers.length}명 참가`);
     
     this.inLobby = false;
     this.gameStarted = true;
@@ -165,16 +172,19 @@ class GameManager {
         player.score = player.score || 0; // 점수 초기화
         player.isLiar = false;
         player.isSpy = false;
+        player.infoConfirmed = false; // 제시어 화면 확인 여부 초기화
       }
     });
     
     // 턴 순서 랜덤 섞기
     this.shuffleArray(this.turnOrder);
+    console.log(`턴 순서 설정: ${this.turnOrder.join(', ')}`);
     
     // 라이어 선택
     const liarIndex = Math.floor(Math.random() * this.turnOrder.length);
     this.liar = this.turnOrder[liarIndex];
     this.players.get(this.liar).isLiar = true;
+    console.log(`라이어 선택: ${this.liar} (${this.players.get(this.liar).nickname})`);
     
     // 스파이 모드인 경우 스파이 선택 (라이어 외에서)
     if (this.spyMode && this.turnOrder.length > 3) {
@@ -185,10 +195,12 @@ class GameManager {
       
       this.spy = this.turnOrder[spyIndex];
       this.players.get(this.spy).isSpy = true;
+      console.log(`스파이 선택: ${this.spy} (${this.players.get(this.spy).nickname})`);
     }
     
     // 카테고리 및 단어 선택
     this.selectCategoryAndWord();
+    console.log(`카테고리/단어 선택: ${this.category} / ${this.word}`);
     
     // 게임 시작 이벤트 발송
     this.sendGameStartInfo();
@@ -482,23 +494,75 @@ class GameManager {
     }
   }
   
-  // 라이어 단어 추측 확인 (띄어쓰기와 대소문자 무시)
+  // 라이어 단어 추측 확인 (띄어쓰기와 대소문자 무시, 더 유연한 비교)
   checkLiarGuess(liardId, guessWord) {
     if (!this.gameStarted || liardId !== this.liar) return;
+
+    console.log(`라이어 단어 추측: ${guessWord}, 정답: ${this.word}`);
+
+    // 라이어가 단어를 맞췄는지 확인 (향상된 비교 로직)
+    // 1. 띄어쓰기, 대소문자 무시
+    // 2. 특수문자 제거
+    // 3. 앞뒤 공백 제거
+    const normalizeWord = (word) => {
+      if (!word) return '';
+      return word
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ]/g, '') // 특수문자 제거, 한글 유지
+        .trim();
+    };
     
-    // 라이어가 단어를 맞췄는지 확인 (띄어쓰기, 대소문자 무시)
-    const normalizedGuess = guessWord.toLowerCase().replace(/\s+/g, '');
-    const normalizedWord = this.word.toLowerCase().replace(/\s+/g, '');
+    const normalizedGuess = normalizeWord(guessWord);
+    const normalizedWord = normalizeWord(this.word);
     
-    if (normalizedGuess === normalizedWord) {
-      this.endGame('liar', '라이어가 단어를 맞췄습니다!');
+    console.log(`정규화된 추측: ${normalizedGuess}, 정규화된 정답: ${normalizedWord}`);
+    
+    // 정확히 일치하는 경우
+    const isExactMatch = normalizedGuess === normalizedWord;
+    
+    // 부분 일치 로직 (단어가 충분히 유사한 경우)
+    let isPartialMatch = false;
+    
+    if (!isExactMatch && normalizedWord.length > 2) {
+      // 포함 관계 확인 (한쪽이 다른 쪽에 포함되는 경우)
+      const includesMainPart = normalizedWord.includes(normalizedGuess) || 
+                             normalizedGuess.includes(normalizedWord);
+      
+      // 첫 글자 일치 확인
+      const firstCharMatch = normalizedGuess.charAt(0) === normalizedWord.charAt(0);
+      
+      // 길이 유사성 확인 (80% 이상)
+      const minLength = Math.min(normalizedGuess.length, normalizedWord.length);
+      const maxLength = Math.max(normalizedGuess.length, normalizedWord.length);
+      const similarLength = minLength / maxLength >= 0.8;
+      
+      // 자음/모음 패턴이 유사한지 확인 (한글의 경우)
+      const isKorean = /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(normalizedWord);
+      let patternMatch = false;
+      
+      if (isKorean) {
+        // 한글 자모 유사성 확인 (초성 일치 등)
+        patternMatch = firstCharMatch && similarLength;
+      }
+      
+      // 조건 조합: 포함 관계이거나, 첫 글자와 길이가 유사할 경우
+      isPartialMatch = includesMainPart || (firstCharMatch && similarLength) || patternMatch;
+    }
+    
+    console.log(`정확 일치: ${isExactMatch}, 부분 일치: ${isPartialMatch}`);
+    
+    if (isExactMatch || isPartialMatch) {
+      console.log('라이어가 단어를 맞췄습니다!');
+      this.endGame('liar', '라이어가 단어를 맞췄습니다!', guessWord);
     } else {
-      this.endGame('players', '라이어가 단어를 맞추지 못했습니다.');
+      console.log('라이어가 단어를 맞추지 못했습니다.');
+      this.endGame('players', '라이어가 단어를 맞추지 못했습니다.', guessWord);
     }
   }
   
   // 게임 종료
-  endGame(winner, message) {
+  endGame(winner, message, guessWord = '') {
     if (!this.gameStarted) return;
     
     // 점수 업데이트
@@ -522,6 +586,8 @@ class GameManager {
     this.gameResult = {
       winner,
       message,
+      liarGuess: guessWord, // 라이어가 추측한 단어 저장
+      liarWin: winner === 'liar',
       liar: {
         id: this.liar,
         nickname: this.players.get(this.liar).nickname
@@ -532,6 +598,7 @@ class GameManager {
       } : null,
       category: this.category,
       word: this.word,
+      allPlayers: this.getAllPlayersInfo(), // 모든 플레이어 정보 추가
       scores: this.getPlayerScores()
     };
     
@@ -613,6 +680,23 @@ class GameManager {
       [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+  }
+  
+  // 모든 플레이어 정보 반환
+  getAllPlayersInfo() {
+    const playersInfo = [];
+    this.players.forEach((player, id) => {
+      playersInfo.push({
+        id: id,
+        nickname: player.nickname,
+        isLiar: player.isLiar,
+        isSpy: player.isSpy,
+        score: player.score,
+        isSpectator: player.isSpectator,
+        isHost: player.isHost
+      });
+    });
+    return playersInfo;
   }
 }
 

@@ -264,9 +264,59 @@
     </div>
   </div>
 
+  <!-- Socket.IO 및 필수 스크립트 로드 -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/socket.js"></script>
+  <script>
+  // 전역 오류 처리
+  window.onerror = function(message, source, lineno, colno, error) {
+    console.error('전역 오류:', message, source, lineno, colno, error);
+    alert('오류가 발생했습니다: ' + message);
+    return false;
+  };
+
+  // 스크립트 로드 확인
+  function checkScriptsLoaded() {
+    if (
+      typeof io === 'undefined' || 
+      typeof GameManager === 'undefined' || 
+      typeof SocketManager === 'undefined'
+    ) {
+      console.error('필수 스크립트가 로드되지 않았습니다.');
+      document.getElementById('loading-screen').style.display = 'flex';
+      
+      const loadingContainer = document.querySelector('.loading-container');
+      if (loadingContainer) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'connection-error';
+        errorMsg.innerHTML = `
+          <h2>스크립트 로드 실패</h2>
+          <p>게임에 필요한 스크립트를 불러올 수 없습니다.</p>
+          <button onclick="window.location.reload()">다시 시도</button>
+        `;
+        
+        const spinner = loadingContainer.querySelector('.spinner');
+        if (spinner) spinner.style.display = 'none';
+        
+        const loadingMessage = loadingContainer.querySelector('p');
+        if (loadingMessage) loadingMessage.style.display = 'none';
+        
+        loadingContainer.appendChild(errorMsg);
+      }
+      return false;
+    }
+    return true;
+  }
+
+  // DOM 로드 완료 시 초기화
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM 로드 완료 - 앱 초기화 대기 중');
+    setTimeout(checkScriptsLoaded, 500);
+  });
+  </script>
+
+  <!-- 게임 관련 스크립트 -->
   <script src="js/game.js"></script>
+  <script src="js/socket.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
